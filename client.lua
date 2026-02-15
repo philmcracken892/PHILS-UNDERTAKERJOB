@@ -18,13 +18,13 @@ local targetedEntities = {}
 local createdZones = {}
 local graveTexts = {}
 local currentBurialName = nil
+local currentBurialType = nil
 
 local function DebugPrint(msg)
     if Config and Config.Debug then
         print('[UNDERTAKER DEBUG] ' .. msg)
     end
 end
-
 
 local function DrawText3D(x, y, z, text)
     local onScreen, _x, _y = GetScreenCoordFromWorldCoord(x, y, z)
@@ -58,16 +58,13 @@ local function AddGraveText(coords, name, entityType)
         textLine2 = "Pet"
         textLine3 = displayName or "Animal Companion"
     else
-        -- Random epitaphs for humans
         local humanEpitaphs = {
-            -- Serious ones
             "Taken too early",
             "Rest in Peace",
             "Gone but not forgotten",
             "Forever in our hearts",
             "May they find peace",
             "Until we meet again",
-            -- Funny/Dark ones
             "Born a loser",
             "Should have ducked",
             "Died owing me money",
@@ -118,7 +115,6 @@ local function CleanupGraveTexts()
     end
 end
 
-
 CreateThread(function()
     while true do
         local hasGraveTexts = next(graveTexts) ~= nil
@@ -132,7 +128,6 @@ CreateThread(function()
                 local dist = #(playerCoords - data.coords)
                 
                 if dist < displayDistance then
-                    -- Draw multiple lines
                     DrawText3D(data.coords.x, data.coords.y, data.coords.z + 1.2, data.textLine1)
                     DrawText3D(data.coords.x, data.coords.y, data.coords.z + 1.0, data.textLine2)
                     DrawText3D(data.coords.x, data.coords.y, data.coords.z + 0.8, data.textLine3)
@@ -146,13 +141,13 @@ CreateThread(function()
     end
 end)
 
-
 CreateThread(function()
     while true do
-        Wait(30000) -- Check every 30 seconds
+        Wait(30000)
         CleanupGraveTexts()
     end
 end)
+
 local function GetLocationName(coords)
     if not coords then return 'Unknown' end
     
@@ -169,7 +164,6 @@ local function GetLocationName(coords)
     
     return closestLocation
 end
-
 
 local function LoadAnimDict(dict)
     if not DoesAnimDictExist(dict) then
@@ -302,7 +296,6 @@ local function GetNearestDeadBody()
     DebugPrint('Total peds in pool: ' .. #peds)
 
     local deadCount = 0
-    local aliveCount = 0
 
     for _, ped in ipairs(peds) do
         if DoesEntityExist(ped) and ped ~= playerPed then
@@ -322,7 +315,6 @@ local function GetNearestDeadBody()
                         closestDist = dist
                         closestBody = ped
                         
-                       
                         local pedType = GetPedType(ped)
                         if pedType == 28 then
                             entityType = 'animal'
@@ -332,8 +324,6 @@ local function GetNearestDeadBody()
                         
                         DebugPrint('Dead ped #' .. deadCount .. ': Type=' .. entityType)
                     end
-                else
-                    aliveCount = aliveCount + 1
                 end
             end
         end
@@ -352,7 +342,6 @@ local function IsDeadBodyNearby()
 
     return cachedDeadBody ~= nil and DoesEntityExist(cachedDeadBody)
 end
-
 
 local function CleanupNotifiedBodies()
     local currentTime = GetGameTimer()
@@ -385,8 +374,6 @@ local function CleanupReportedBodies()
     end
 end
 
-
-
 local function ReportDeath()
     if not Config.DeathReport or not Config.DeathReport.Enabled then
         return
@@ -395,12 +382,10 @@ local function ReportDeath()
     local currentTime = GetGameTimer()
     local cooldown = Config.DeathReport.Cooldown or 60000
     
-    
     if currentTime - lastReportTime < cooldown then
         Notify('Death Report', Config.Texts.ReportCooldown, 'error')
         return
     end
-    
     
     local body, dist = GetNearestDeadBody()
     
@@ -412,19 +397,15 @@ local function ReportDeath()
     local bodyCoords = GetEntityCoords(body)
     local bodyId = string.format("%.1f_%.1f_%.1f", bodyCoords.x, bodyCoords.y, bodyCoords.z)
     
-   
     if reportedBodies[bodyId] then
         Notify('Death Report', Config.Texts.AlreadyReported, 'error')
         return
     end
     
-    
     reportedBodies[bodyId] = currentTime
     lastReportTime = currentTime
     
-    
     local locationName = GetLocationName(bodyCoords)
-    
     
     TriggerServerEvent('undertaker:reportDeath', {
         coords = bodyCoords,
@@ -433,8 +414,6 @@ local function ReportDeath()
     
     Notify('Death Report', Config.Texts.DeathReported, 'success')
 end
-
-
 
 local function CheckForDeadBodies()
     if not Config.BodyDetection or not Config.BodyDetection.Enabled then
@@ -503,7 +482,6 @@ local function CheckForDeadBodies()
     CleanupNotifiedBodies()
 end
 
-
 CreateThread(function()
     while true do
         Wait(Config.BodyDetection and Config.BodyDetection.CheckInterval or 10000)
@@ -512,15 +490,12 @@ CreateThread(function()
             CleanupWagonSpawnedBodies()
             CleanupReportedBodies()
             
-           
             if Config.BodyDetection.AutoNotify then
                 CheckForDeadBodies()
             end
         end
     end
 end)
-
-
 
 local function GetNearbyWagon()
     local playerPed = PlayerPedId()
@@ -573,7 +548,6 @@ local function SpawnDeadBody()
         spawnY = playerCoords.y + forwardVector.y * 5.0
         spawnZ = playerCoords.z
     end
-    
     
     local bodyModels = {
         `a_m_m_rancher_01`,
@@ -682,8 +656,6 @@ local function RetrieveBodyFromWagon(bodyId)
     TriggerServerEvent('undertaker:retrieveBodyFromWagon', bodyId)
 end
 
-
-
 local function AttachShovel()
     local playerPed = PlayerPedId()
 
@@ -787,8 +759,6 @@ local function PlayPrayAnimation(duration, callback)
     end)
 end
 
-
-
 local function CleanupDirtPiles()
     for _, pile in ipairs(createdDirtPiles) do
         if DoesEntityExist(pile) then
@@ -799,20 +769,8 @@ local function CleanupDirtPiles()
     DebugPrint('All dirt piles cleaned up')
 end
 
-local function BuryBody(graveData)
-    if isDigging then
-        Notify('Undertaker', Config.Texts.AlreadyDigging, 'error')
-        return
-    end
-
-    cachedDeadBody = GetNearestDeadBody()
-    local body = cachedDeadBody
-
-    if not body or not DoesEntityExist(body) then
-        Notify('Undertaker', Config.Texts.NoBodyNearby, 'error')
-        return
-    end
-
+-- NEW FUNCTION: Perform the actual grave burial (extracted from BuryBody)
+local function PerformGraveBurial(graveData, body)
     local playerPed = PlayerPedId()
 
     DebugPrint('Burying body: ' .. tostring(body) .. ' at grave: ' .. (graveData.name or 'Unknown'))
@@ -842,7 +800,14 @@ local function BuryBody(graveData)
             local forwardVector = GetEntityForwardVector(playerPed)
             local playerHeading = GetEntityHeading(playerPed)
             
+            -- Calculate grave position for grave text
+            local graveOffsetFwd = Config.DirtPile and Config.DirtPile.OffsetForward or 0.6
+            local graveX = pCoords.x + forwardVector.x * graveOffsetFwd
+            local graveY = pCoords.y + forwardVector.y * graveOffsetFwd
+            local graveZ = pCoords.z
+            local graveCoords = vector3(graveX, graveY, graveZ)
             
+            -- Create dirt pile
             if Config.DirtPile and Config.DirtPile.Enabled then
                 local dirtModel = Config.DirtPile.Model
                 local dirtHash = GetHashKey(dirtModel)
@@ -870,7 +835,7 @@ local function BuryBody(graveData)
                 end
             end
             
-           
+            -- Create grave marker
             if Config.GraveMarker and Config.GraveMarker.Enabled then
                 local markerModel = Config.GraveMarker.Model
                 local markerHash = GetHashKey(markerModel)
@@ -899,12 +864,56 @@ local function BuryBody(graveData)
                 end
             end
             
+            -- Generate name for grave text
+            local bodyName = nil
+            if currentBurialName then
+                bodyName = currentBurialName
+                currentBurialName = nil
+            elseif Config.RandomNames and Config.RandomNames.FirstNames and Config.RandomNames.LastNames then
+                local firstName = Config.RandomNames.FirstNames[math.random(#Config.RandomNames.FirstNames)]
+                local lastName = Config.RandomNames.LastNames[math.random(#Config.RandomNames.LastNames)]
+                bodyName = firstName .. ' ' .. lastName
+            else
+                bodyName = "Unknown"
+            end
+            
+            AddGraveText(graveCoords, bodyName, 'human')
+            
             PlayPrayAnimation(3, function()
-                TriggerServerEvent('undertaker:buryBody')
+                TriggerServerEvent('undertaker:buryBody', 'human')
                 Notify('Undertaker', Config.Texts.BurialComplete, 'success')
             end)
         end
     end)
+end
+
+-- MODIFIED: Main BuryBody function with shovel check
+local function BuryBody(graveData)
+    if isDigging then
+        Notify('Undertaker', Config.Texts.AlreadyDigging, 'error')
+        return
+    end
+
+    cachedDeadBody = GetNearestDeadBody()
+    local body = cachedDeadBody
+
+    if not body or not DoesEntityExist(body) then
+        Notify('Undertaker', Config.Texts.NoBodyNearby, 'error')
+        return
+    end
+
+    -- Check for shovel if required
+    if Config.RequireShovel then
+        RSGCore.Functions.TriggerCallback('undertaker:hasShovel', function(hasShovel)
+            if not hasShovel then
+                Notify('Undertaker', Config.Texts.NoShovel or 'You need a shovel to bury bodies', 'error')
+                return
+            end
+            PerformGraveBurial(graveData, body)
+        end)
+    else
+        PerformGraveBurial(graveData, body)
+    end
 end
 
 local function PerformBurialAnywhere(body, burialType)
@@ -942,14 +951,12 @@ local function PerformBurialAnywhere(body, burialType)
             local forwardVector = GetEntityForwardVector(playerPed)
             local playerHeading = GetEntityHeading(playerPed)
             
-            -- Calculate grave position
             local graveOffsetFwd = Config.DirtPile and Config.DirtPile.OffsetForward or 0.6
             local graveX = pCoords.x + forwardVector.x * graveOffsetFwd
             local graveY = pCoords.y + forwardVector.y * graveOffsetFwd
             local graveZ = pCoords.z
             local graveCoords = vector3(graveX, graveY, graveZ)
             
-            -- Create dirt pile
             if Config.DirtPile and Config.DirtPile.Enabled then
                 local dirtHash = GetHashKey(Config.DirtPile.Model)
                 RequestModel(dirtHash)
@@ -967,7 +974,6 @@ local function PerformBurialAnywhere(body, burialType)
                 SetModelAsNoLongerNeeded(dirtHash)
             end
             
-            -- Create grave marker
             if Config.GraveMarker and Config.GraveMarker.Enabled then
                 local markerHash = GetHashKey(Config.GraveMarker.Model)
                 RequestModel(markerHash)
@@ -986,14 +992,11 @@ local function PerformBurialAnywhere(body, burialType)
                 SetModelAsNoLongerNeeded(markerHash)
             end
             
-            -- Generate name for grave text
             local bodyName = nil
             if currentBurialName then
-                -- Use name from wagon storage
                 bodyName = currentBurialName
-                currentBurialName = nil  -- Clear after use
+                currentBurialName = nil
             elseif currentBurialType == 'animal' then
-                -- Generate random animal names
                 local animalNames = {
                     "Bessie", "Buck", "Shadow", "Scout", "Whiskey",
                     "Daisy", "Thunder", "Midnight", "Spirit", "Copper",
@@ -1002,7 +1005,6 @@ local function PerformBurialAnywhere(body, burialType)
                 }
                 bodyName = animalNames[math.random(#animalNames)]
             else
-                -- Generate random human name
                 if Config.RandomNames and Config.RandomNames.FirstNames and Config.RandomNames.LastNames then
                     local firstName = Config.RandomNames.FirstNames[math.random(#Config.RandomNames.FirstNames)]
                     local lastName = Config.RandomNames.LastNames[math.random(#Config.RandomNames.LastNames)]
@@ -1036,16 +1038,15 @@ local function BuryBodyAnywhere()
         return
     end
     
-    
     if entityType == 'animal' and (not Config.AnywhereBurial or not Config.AnywhereBurial.AllowAnimals) then
         Notify('Undertaker', 'Cannot bury animals', 'error')
         return
     end
 
-    if Config.AnywhereBurial and Config.AnywhereBurial.RequireShovel then
+    if Config.RequireShovel then
         RSGCore.Functions.TriggerCallback('undertaker:hasShovel', function(hasShovel)
             if not hasShovel then
-                Notify('Undertaker', 'You need a shovel to bury bodies', 'error')
+                Notify('Undertaker', Config.Texts.NoShovel or 'You need a shovel to bury bodies', 'error')
                 return
             end
             PerformBurialAnywhere(body, entityType)
@@ -1054,9 +1055,6 @@ local function BuryBodyAnywhere()
         PerformBurialAnywhere(body, entityType)
     end
 end
-
-
-
 
 local function PrayAtGrave(graveData)
     if isPraying or isDigging then
@@ -1071,8 +1069,6 @@ local function PrayAtGrave(graveData)
         Notify('Undertaker', 'You paid your respects.', 'info')
     end)
 end
-
-
 
 local OpenWagonMenu
 
@@ -1093,7 +1089,6 @@ local function OpenBodyOptionsMenu(body)
             icon = 'fas fa-box-open',
             onSelect = function()
                 if isDigging or isPraying then return end
-                -- Store the name for when we bury this body
                 currentBurialName = body.name
                 TriggerServerEvent('undertaker:retrieveBodyFromWagon', body.id)
             end
@@ -1149,12 +1144,10 @@ OpenWagonMenu = function()
             end
         end
         
-        
         options[#options + 1] = {
             title = 'Close',
             icon = 'fas fa-times',
             onSelect = function()
-                
             end
         }
         
@@ -1168,13 +1161,7 @@ OpenWagonMenu = function()
     end)
 end
 
-
-
-
-
 local function RegisterBuryAnywhereTarget()
-   
-    
     if not Config.AnywhereBurial or not Config.AnywhereBurial.Enabled then
         return
     end
@@ -1182,7 +1169,6 @@ local function RegisterBuryAnywhereTarget()
     if Config.BurialMode ~= 'anywhere' then
         return
     end
-    
     
     exports['ox_target']:addGlobalPed({
         {
@@ -1196,7 +1182,6 @@ local function RegisterBuryAnywhereTarget()
                 if not DoesEntityExist(entity) then return false end
                 if IsPedAPlayer(entity) then return false end
                 
-               
                 local pedType = GetPedType(entity)
                 if pedType == 28 then return false end
                 
@@ -1207,7 +1192,7 @@ local function RegisterBuryAnywhereTarget()
             end,
             onSelect = function(data)
                 cachedDeadBody = data.entity
-                PerformBurialAnywhere(data.entity, 'human')
+                BuryBodyAnywhere()
             end
         },
         {
@@ -1239,12 +1224,7 @@ local function RegisterBuryAnywhereTarget()
         }
     })
     
-    
-    
-    
     if Config.AnywhereBurial.AllowAnimals then
-        
-        
         CreateThread(function()
             while true do
                 Wait(2000)
@@ -1271,11 +1251,7 @@ local function RegisterBuryAnywhereTarget()
                             local health = GetEntityHealth(ped)
                             local pedType = GetPedType(ped)
                             
-                            
                             if pedType == 28 and (isDead or health <= 0) and not targetedEntities[ped] then
-                                
-                                
-                                
                                 targetedEntities[ped] = true
                                 
                                 local zoneId = 'deadanimal_' .. tostring(ped)
@@ -1299,7 +1275,9 @@ local function RegisterBuryAnywhereTarget()
                                                     return
                                                 end
                                                 cachedDeadBody = ped
-                                                PerformBurialAnywhere(ped, 'animal')
+                                                -- Changed to use BuryBodyAnywhere which includes shovel check
+                                                currentBurialType = 'animal'
+                                                BuryBodyAnywhere()
                                             end
                                         },
                                         {
@@ -1327,12 +1305,10 @@ local function RegisterBuryAnywhereTarget()
                                 })
                                 
                                 createdZones[ped] = zoneId
-                                
                             end
                         end
                     end
                 end
-                
                 
                 for ped, zoneId in pairs(createdZones) do
                     if not DoesEntityExist(ped) then
@@ -1345,8 +1321,6 @@ local function RegisterBuryAnywhereTarget()
             end
         end)
     end
-    
-   
 end
 
 local function RegisterGraveTargets()
@@ -1450,8 +1424,6 @@ local function RegisterWagonTargets()
     DebugPrint('Wagon targets registered for ' .. #Config.WagonStorage.WagonModels .. ' wagon models')
 end
 
-
-
 RegisterNetEvent('undertaker:wagonStorageResult', function(success, action, count)
     wagonBodyCount = count
     
@@ -1475,7 +1447,6 @@ RegisterNetEvent('undertaker:burialSuccess', function(payment)
     Notify('Undertaker', 'Received $' .. payment .. ' for burial services', 'success')
 end)
 
-
 RegisterNetEvent('undertaker:deathReportReceived', function(data)
     if not IsUndertaker() then return end
     
@@ -1486,12 +1457,9 @@ RegisterNetEvent('undertaker:deathReportReceived', function(data)
     end)
 end)
 
-
 RegisterNetEvent('undertaker:reportReward', function(amount)
     Notify('Death Report', string.format(Config.Texts.ReportReward, amount), 'success')
 end)
-
-
 
 CreateThread(function()
     Wait(2000)
@@ -1500,11 +1468,9 @@ CreateThread(function()
         return
     end
     
-   
     if Config.BurialMode == 'graves' then
         RegisterGraveTargets()
     end
-    
     
     if Config.BurialMode == 'anywhere' then
         RegisterBuryAnywhereTarget()
@@ -1514,7 +1480,6 @@ CreateThread(function()
     
     DebugPrint('Undertaker script initialized - Mode: ' .. (Config.BurialMode or 'graves'))
 end)
-
 
 CreateThread(function()
     Wait(3000)
@@ -1530,15 +1495,12 @@ CreateThread(function()
     end
 end)
 
-
-
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         DetachShovel()
         CleanupDirtPiles()
         ClearBodyWaypoint()
         
-       
         for ped, _ in pairs(targetedEntities) do
             if DoesEntityExist(ped) then
                 exports['ox_target']:removeLocalEntity(ped, {'undertaker_bury_' .. tostring(ped), 'undertaker_store_' .. tostring(ped)})
@@ -1546,7 +1508,6 @@ AddEventHandler('onResourceStop', function(resourceName)
         end
         targetedEntities = {}
         
-       
         graveTexts = {}
 
         if isDigging or isPraying then
