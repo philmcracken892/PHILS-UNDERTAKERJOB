@@ -14,6 +14,9 @@ Config.BodySearchRadius = 25.0
 -- How long the digging animation takes (in seconds)
 Config.DiggingTimer = 10
 
+Config.RequireShovel = true      -- Set to false to disable shovel requirement
+Config.ShovelItem = 'shovel'     -- Item name in your database
+
 Config.DirtPile = {
     Enabled = true,
     Model = 'mp005_p_dirtpile_tall_unburied',
@@ -83,8 +86,9 @@ Config.Texts = {
 	DeathReportReceived = "A death has been reported",
 	NoBodyToReport = "No dead body nearby to report",
 	ReportCooldown = "Please wait before reporting another death",
-	.ReportReward = "Received $%s for reporting a death",
+	ReportReward = "Received $%s for reporting a death",
 	AlreadyReported = "This body has already been reported",
+	NoShovel = "You need a shovel to bury bodies",
 }
 
 
